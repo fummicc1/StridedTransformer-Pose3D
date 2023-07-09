@@ -1,4 +1,5 @@
 import sys
+import time
 import argparse
 import cv2
 from lib.preprocess import h36m_coco_format, revise_kpts
@@ -19,6 +20,7 @@ import matplotlib
 import matplotlib.pyplot as plt 
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.gridspec as gridspec
+from common.device import DEVICE
 
 plt.switch_backend('agg')
 matplotlib.rcParams['pdf.fonttype'] = 42
@@ -132,8 +134,8 @@ def get_pose3D(video_path, output_dir):
     args.previous_dir = 'checkpoint/pretrained'
     args.n_joints, args.out_joints = 17, 17
 
-    ## Reload 
-    model = Model(args).cuda()
+    ## Reload
+    model = Model(args).to(DEVICE)
 
     model_dict = model.state_dict()
     model_paths = sorted(glob.glob(os.path.join(args.previous_dir, '*.pth')))
@@ -141,7 +143,7 @@ def get_pose3D(video_path, output_dir):
         if os.path.split(path)[-1][0] == 'n':
             model_path = path
 
-    pre_dict = torch.load(model_path)
+    pre_dict = torch.load(model_path, map_location=DEVICE)
     for name, key in model_dict.items():
         model_dict[name] = pre_dict[name]
     model.load_state_dict(model_dict)
@@ -188,7 +190,7 @@ def get_pose3D(video_path, output_dir):
         
         input_2D = input_2D[np.newaxis, :, :, :, :]
 
-        input_2D = torch.from_numpy(input_2D.astype('float32')).cuda()
+        input_2D = torch.from_numpy(input_2D.astype('float32')).to(DEVICE)
 
         N = input_2D.size(0)
 
@@ -274,8 +276,9 @@ def get_pose3D(video_path, output_dir):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    start = time.time()
     parser.add_argument('--video', type=str, default='sample_video.mp4', help='input video')
-    parser.add_argument('--gpu', type=str, default='0', help='input video')
+    parser.add_argument('--gpu', type=str, default='0', help='input available gpus')
     args = parser.parse_args()
 
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
@@ -288,5 +291,7 @@ if __name__ == "__main__":
     get_pose3D(video_path, output_dir)
     img2video(video_path, output_dir)
     print('Generating demo successful!')
+    duration = time.time() - start
+    print(f'duration:{duration:.4f}')
 
 

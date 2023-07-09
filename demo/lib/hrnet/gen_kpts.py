@@ -28,6 +28,7 @@ model_dir = 'demo/lib/checkpoint/'
 from lib.yolov3.human_detector import load_model as yolo_model
 from lib.yolov3.human_detector import yolo_human_det as yolo_det
 from lib.sort.sort import Sort
+from common.device import DEVICE
 
 
 def parse_args():
@@ -67,10 +68,9 @@ def reset_config(args):
 # load model
 def model_load(config):
     model = pose_hrnet.get_pose_net(config, is_train=False)
-    if torch.cuda.is_available():
-        model = model.cuda()
+    model = model.to(DEVICE)
 
-    state_dict = torch.load(config.OUTPUT_DIR)
+    state_dict = torch.load(config.OUTPUT_DIR, map_location=DEVICE)
     from collections import OrderedDict
     new_state_dict = OrderedDict()
     for k, v in state_dict.items():
@@ -139,8 +139,7 @@ def gen_video_kpts(video, det_dim=416, num_peroson=1, gen_output=False):
 
             inputs = inputs[:, [2, 1, 0]]
 
-            if torch.cuda.is_available():
-                inputs = inputs.cuda()
+            inputs = inputs.to(DEVICE)
             output = pose_model(inputs)
 
             # compute coordinate

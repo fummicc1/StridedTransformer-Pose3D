@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
+from common.device import DEVICE
 
 fc_out = 256
 fc_unit = 1024
@@ -27,7 +28,7 @@ class refine(nn.Module):
         x_in = x_in.view(N, -1) 
 
         score = self.post_refine(x_in).view(N,T,V,2) 
-        score_cm = Variable(torch.ones(score.size()), requires_grad=False).cuda() - score
+        score_cm = Variable(torch.ones(score.size()), requires_grad=False).to(DEVICE) - score
         x_out = x.clone()
         x_out[:, :, :, :2] = score * x[:, :, :, :2] + score_cm * x_1[:, :, :, :2]
 

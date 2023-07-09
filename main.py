@@ -15,6 +15,7 @@ from common.load_data_hm36 import Fusion
 from common.h36m_dataset import Human36mDataset
 from model.block.refine import refine
 from model.strided_transformer import Model
+from common.device import DEVICE
 
 opt = opts().parse()
 os.environ["CUDA_VISIBLE_DEVICES"] = opt.gpu
@@ -149,8 +150,8 @@ if __name__ == '__main__':
     opt.out_joints = dataset.skeleton().num_joints()
 
     model = {}
-    model['trans'] = Model(opt).cuda()
-    model['refine']= refine(opt).cuda()
+    model['trans'] = Model(opt).to(DEVICE)
+    model['refine']= refine(opt).to(DEVICE)
 
     model_dict = model['trans'].state_dict()
     if opt.reload:
