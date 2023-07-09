@@ -97,7 +97,7 @@ def gen_video_kpts(video, det_dim=416, num_peroson=1, gen_output=False):
     pose_model = model_load(cfg)
     people_sort = Sort(min_hits=0)
 
-    video_length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    video_length = max(1, int(cap.get(cv2.CAP_PROP_FRAME_COUNT)))
 
     kpts_result = []
     scores_result = []
