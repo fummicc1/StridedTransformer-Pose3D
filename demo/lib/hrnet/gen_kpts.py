@@ -28,6 +28,7 @@ model_dir = 'demo/lib/checkpoint/'
 from lib.yolov3.human_detector import load_model as yolo_model
 from lib.yolov3.human_detector import yolo_human_det as yolo_det
 from lib.sort.sort import Sort
+sys.path.append(os.getcwd())
 from common.device import DEVICE
 
 
