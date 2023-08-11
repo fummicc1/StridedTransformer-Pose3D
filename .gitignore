@@ -144,3 +144,4 @@ demo/output/*
 demo/video/*
 demo/lib/checkpoint/*
 !README.md
+*.mp4
