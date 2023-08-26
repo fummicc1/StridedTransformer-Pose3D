@@ -31,3 +31,11 @@ def check_has_almost_single_line(points: np.ndarray, threshold: float = 0.1, ver
         if verbose:
             print("3点は一直線上にない")
         return False
+
+def check_did_fail(head: np.ndarray, waist: np.ndarray, foot: np.ndarray, threshold: float = 0.4, verbose: bool = False) -> bool:
+    axis = 2
+    diff = max(map(lambda num: abs(num), [head[axis] - waist[axis], foot[axis] - waist[axis], head[axis] - foot[axis]]))
+    if verbose:
+        print(head[axis], waist[axis], foot[axis])
+        print("diff", diff)
+    return diff < threshold

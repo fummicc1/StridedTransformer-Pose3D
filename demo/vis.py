@@ -4,7 +4,7 @@ import argparse
 import cv2
 from lib.preprocess import h36m_coco_format, revise_kpts
 from lib.hrnet.gen_kpts import gen_video_kpts as hrnet_pose
-from check.check import check_has_almost_single_line
+from check.check import check_has_almost_single_line, check_did_fail
 import os 
 import numpy as np
 import torch
@@ -78,9 +78,9 @@ def show3Dpose(vals, ax):
     ax.yaxis.set_pane_color(white)
     ax.zaxis.set_pane_color(white)
 
-    ax.tick_params('x', labelbottom = False)
-    ax.tick_params('y', labelleft = False)
-    ax.tick_params('z', labelleft = False)
+    ax.tick_params('x', labelbottom = True)
+    ax.tick_params('y', labelleft = True)
+    ax.tick_params('z', labelleft = True)
 
 
 def get_pose2D(video_path, output_dir):
@@ -262,20 +262,13 @@ def get_pose3D(video_path, output_dir):
         ## show
         font_size = 12
         fig = plt.figure(figsize=(9.6, 5.4))
-        ax = plt.subplot(131)
+        ax = plt.subplot(121)
         showimage(ax, image_2d)
         ax.set_title("Input", fontsize = font_size)
 
-        ax = plt.subplot(132)
+        ax = plt.subplot(122)
         showimage(ax, image_3d)
         ax.set_title("Reconstruction", fontsize = font_size)
-        on_single_line = check_has_almost_single_line
-        state = np.array([on_single_line], dtype=np.int16)
-        ax = plt.subplot(133)
-        showimage(ax, state)
-        ax.set_title("on_single_line", fontsize=font_size)
-
-        print("image_3d.shape", image_3d.shape)
 
         ## save
         output_dir_pose = output_dir +'pose/'
