@@ -4,8 +4,9 @@ import argparse
 import cv2
 from lib.preprocess import h36m_coco_format, revise_kpts
 from lib.hrnet.gen_kpts import gen_video_kpts as hrnet_pose
-from check.check import check_has_almost_single_line, check_did_fail
-import os 
+sys.path.append("../fall-check")
+from check import check_has_almost_single_line, check_did_fail
+import os
 import numpy as np
 import torch
 import glob
@@ -50,7 +51,7 @@ def show2Dpose(kps, img):
     return img
 
 
-def show3Dpose(vals, ax):
+def show3Dpose(vals, ax, did_fall: bool):
     ax.view_init(elev=15., azim=70)
 
     I = np.array( [0, 0, 1, 4, 2, 5, 0, 7,  8,  8, 14, 15, 11, 12, 8,  9])
@@ -81,18 +82,24 @@ def show3Dpose(vals, ax):
     ax.tick_params('x', labelbottom = True)
     ax.tick_params('y', labelleft = True)
     ax.tick_params('z', labelleft = True)
+    ax.set_title('Fall' if did_fall else 'No fall')
 
 
 def get_pose2D(video_path, output_dir):
     cap = cv2.VideoCapture(video_path)
     width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
     height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    frames = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    print("frames", frames)
+    print("fps", fps)
 
     print('\nGenerating 2D pose...')
     keypoints, scores = hrnet_pose(video_path, det_dim=416, num_peroson=1, gen_output=True)
     keypoints, scores, valid_frames = h36m_coco_format(keypoints, scores)
     re_kpts = revise_kpts(keypoints, scores, valid_frames)
     print('Generating 2D pose successful!')
+    print("keypoints", keypoints.shape)
 
     output_dir += 'input_2D/'
     os.makedirs(output_dir, exist_ok=True)
@@ -160,6 +167,7 @@ def get_pose3D(video_path, output_dir):
     ## 3D
     print('\nGenerating 3D pose...')
     output_3d_all = []
+    print("video_length", video_length)
     for i in tqdm(range(video_length)):
         ret, img = cap.read()
         img_size = img.shape
@@ -228,7 +236,16 @@ def get_pose3D(video_path, output_dir):
         gs = gridspec.GridSpec(1, 1)
         gs.update(wspace=-0.00, hspace=0.05) 
         ax = plt.subplot(gs[0], projection='3d')
-        show3Dpose( post_out, ax)
+        # Check fall
+        head = post_out[10, :]
+        waist = post_out[0, :]
+        foot = np.mean([post_out[3, :], post_out[6, :]], axis=0)
+        did_fall = check_did_fail(
+            head=head,
+            waist=waist,
+            foot=foot,
+        )
+        show3Dpose( post_out, ax, did_fall=did_fall)
 
         output_dir_3D = output_dir +'pose3D/'
         os.makedirs(output_dir_3D, exist_ok=True)
@@ -239,7 +256,7 @@ def get_pose3D(video_path, output_dir):
     os.makedirs(output_dir + 'output_3D/', exist_ok=True)
     output_npz = output_dir + 'output_3D/' + 'output_keypoints_3d.npz'
     np.savez_compressed(output_npz, reconstruction=output_3d_all)
-        
+
     print('Generating 3D pose successful!')
 
     ## all
@@ -252,9 +269,16 @@ def get_pose3D(video_path, output_dir):
         image_2d = plt.imread(image_2d_dir[i])
         image_3d = plt.imread(image_3d_dir[i])
 
+        if i == 0:
+            print("image_2d", image_2d.shape)
+            print("image_3d", image_3d.shape)
+
         ## crop
-        edge = (image_2d.shape[1] - image_2d.shape[0]) // 2
-        image_2d = image_2d[:, edge:image_2d.shape[1] - edge]
+        edge = (abs(image_2d.shape[1] - image_2d.shape[0])) // 2
+        if image_2d.shape[1] > image_2d.shape[0]:
+            image_2d = image_2d[:, edge:image_2d.shape[1] - edge]
+        else:
+            image_2d = image_2d[edge:image_2d.shape[0] - edge, :]
 
         edge = 102
         image_3d = image_3d[edge:image_3d.shape[0] - edge, edge:image_3d.shape[1] - edge]
